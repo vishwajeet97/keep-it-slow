@@ -4,7 +4,7 @@ import tiles
 
 
 class BaseAgent:
-    def __init__(self, env, epochs=1000):
+    def __init__(self, env, epochs=4000):
         self.env = env
         self.epochs = epochs
 
@@ -16,12 +16,12 @@ class BaseAgent:
             self.state = self.env.reset()
             self.t = 0
             while True:
-                self.env.render()
+                # self.env.render()
                 # import pdb
                 # pdb.set_trace()
                 action = self.getAction(self.state)
                 new_state, reward, done, info = self.env.step(action)
-                self.update(self.state, action, reward, new_state, self.t)
+                self.update(self.state, action, reward, new_state, self.t, done)
                 self.state = new_state
                 self.t += 1
                 if done:
@@ -35,7 +35,7 @@ class BaseAgent:
         '''
         raise NotImplementedError
 
-    def update(self, state, action, reward, new_state, timestep):
+    def update(self, state, action, reward, new_state, timestep, terminal_state):
         '''
 
         '''
@@ -46,7 +46,7 @@ class BaseAgent:
 
 
 class ExperienceReplayAgent(BaseAgent):
-    def __init__(self, env: gym.Env, epsilon=0.1, N=10, M=100, num_tilings=16, tile_dim=4, gamma = 1.):
+    def __init__(self, env: gym.Env, epsilon=0.05, N=20, M=150, num_tilings=32, tile_dim=8, gamma = 1.):
         super(ExperienceReplayAgent, self).__init__(env)
         self.experience = []
         self.epsilon = epsilon
@@ -60,10 +60,11 @@ class ExperienceReplayAgent(BaseAgent):
         self.tile_dim = tile_dim
         self.grid_size = tile_dim ** np.prod(self.env.observation_space.shape)
 
-        self.weights = np.random.randn(num_tilings * self.grid_size)
+        self.weights = np.zeros((self.env.action_space.n, num_tilings * self.grid_size))
         self.scale = tile_dim / (self.env.observation_space.high - self.env.observation_space.low)
 
-        self.alpha = 0.5
+        self.alpdecay = 1
+        self.alpha = 0.2
         self.gamma = gamma
 
     def getAction(self, state):
@@ -75,11 +76,11 @@ class ExperienceReplayAgent(BaseAgent):
         else:
             return self.env.action_space.sample()
 
-    def update(self, state, action, reward, new_state, timestep):
+    def update(self, state, action, reward, new_state, timestep, terminal_state):
         '''
 
         '''
-        self.experience.append((state, action, reward, new_state))
+        self.experience.append((state, action, reward, new_state, terminal_state))
 
     def episodeEnded(self):
         '''
@@ -87,28 +88,40 @@ class ExperienceReplayAgent(BaseAgent):
         '''
         self.num_episodes += 1
         if (self.num_episodes % self.N == 0):
+            print ("Updating Q")
             for i in range(self.M):
                 self.batch_update()
+            # self.experience.clear()
+            
 
     def getFeatures(self, state, action):
         feat = np.zeros(self.grid_size * self.num_tilings)
         tileIndex = tiles.tiles(
-            self.num_tilings, self.grid_size * self.num_tilings, state * self.scale, [action])
+            self.num_tilings, self.grid_size * self.num_tilings, state * self.scale)
         feat[tileIndex] = 1
         return feat
 
     def getQValue(self, state, action):
         tileIndices = tiles.tiles(
-            self.num_tilings, self.grid_size * self.num_tilings, state * self.scale, [action])
-        return np.sum(self.weights[tileIndices])
+            self.num_tilings, self.grid_size * self.num_tilings, state * self.scale)
+        return np.sum(self.weights[action, tileIndices])
 
     def batch_update(self):
-        state, action, reward, new_state = np.random.choice(self.experience)
+
+        state, action, reward, new_state, terminal_state = self.experience[np.random.randint(len(self.experience))]
         phi_k = self.getFeatures(state, action)
         Q_k = self.getQValue(state, action)
-
-        Q_k_plus_1_max = np.max( [ self.getQValue(new_state, a) for a in range(self.env.action_space.n)] )
+        
+        if terminal_state:
+            Q_k_plus_1_max = 0.
+        else:
+            Q_k_plus_1_max = np.max( [ self.getQValue(new_state, a) for a in range(self.env.action_space.n)] )
         
         delta_k = reward + self.gamma * Q_k_plus_1_max - Q_k
+        # import pdb; pdb.set_trace()
+        # if delta_k != 1.0:
+        #     print ("adf")
 
-        self.weights = self.weights + self.alpha * (delta_k) * phi_k
+        # self.weights[action, :] = self.weights[action, :] + (self.alpha) * (delta_k) * phi_k
+        self.weights[action, :] = self.weights[action, :] + (1 / (1 + self.alpdecay)) * (delta_k) * phi_k
+        self.alpdecay += 0.2
