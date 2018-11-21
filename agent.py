@@ -58,15 +58,7 @@ class ExperienceReplayAgent(BaseAgent):
         self.N = N
         self.M = M
 
-        self.num_tilings = num_tilings
-
-        self.tile_dim = tile_dim
-        self.grid_size = tile_dim ** np.prod(self.env.observation_space.shape)
-
-        self.weights = np.zeros(
-            (self.env.action_space.n, num_tilings * self.grid_size))
-        self.scale = tile_dim / \
-            (self.env.observation_space.high - self.env.observation_space.low)
+        self.q_net = Q_Network(self.env.observation_space.n, self.env.action_space.n)
 
         self.alpdecay = 1
         self.alpha = 0.2
@@ -76,8 +68,12 @@ class ExperienceReplayAgent(BaseAgent):
         '''
 
         '''
+        if self.num_episodes <= self.N:
+            return self.env.action_space.sample()
+
         if np.random.binomial(1, self.epsilon) == 0:
-            return np.argmax([self.getQValue(state, action) for action in range(self.env.action_space.n)])
+            q_values = self.q_net.forward(state)
+            return np.argmax(q_values)
         else:
             return self.env.action_space.sample()
 
@@ -99,23 +95,13 @@ class ExperienceReplayAgent(BaseAgent):
                 self.batch_update()
             # self.experience.clear()
 
-    def getFeatures(self, state, action):
-        feat = np.zeros(self.grid_size * self.num_tilings)
-        tileIndex = tiles.tiles(
-            self.num_tilings, self.grid_size * self.num_tilings, state * self.scale)
-        feat[tileIndex] = 1
-        return feat
-
     def getQValue(self, state, action):
-        tileIndices = tiles.tiles(
-            self.num_tilings, self.grid_size * self.num_tilings, state * self.scale)
-        return np.sum(self.weights[action, tileIndices])
+        return self.q_net.forward(state)[action]
 
     def batch_update(self):
 
         state, action, reward, new_state, terminal_state = self.experience[np.random.randint(
             len(self.experience))]
-        phi_k = self.getFeatures(state, action)
         Q_k = self.getQValue(state, action)
 
         if terminal_state:
