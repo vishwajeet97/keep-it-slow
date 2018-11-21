@@ -97,6 +97,25 @@ class ExperienceReplayAgent(BaseAgent):
     def getQValue(self, state, action):
         return self.q_net.forward(state)[action]
 
+
+    def train_replay(self, x):
+        state, action, rewards, next_state = x
+
+        q_values = self.Q_new(state)[:, action].squeeze()
+        v_values = self.Q_old(next_state).max(1).detach()
+
+        expected_q_values = v_values*self.gamma + rewards
+
+        loss = F.smooth_l1_loss(q_values, expected_q_values)
+        
+        self.optimizer.zero_grad()
+        loss.backward()
+
+        for p in self.Q_new.parameters():
+            p.grad.data.clamp_(-1,1)
+
+        optimizer.step()
+
     def batch_update(self):
 
         batch = self.experience[np.random.randint(
