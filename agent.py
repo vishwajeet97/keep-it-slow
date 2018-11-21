@@ -91,8 +91,7 @@ class ExperienceReplayAgent(BaseAgent):
         self.num_episodes += 1
         if (self.num_episodes % self.N == 0):
             print("Updating Q")
-            for i in range(self.M):
-                self.batch_update()
+            self.batch_update()
             # self.experience.clear()
 
     def getQValue(self, state, action):
@@ -100,26 +99,14 @@ class ExperienceReplayAgent(BaseAgent):
 
     def batch_update(self):
 
-        state, action, reward, new_state, terminal_state = self.experience[np.random.randint(
-            len(self.experience))]
-        Q_k = self.getQValue(state, action)
+        batch = self.experience[np.random.randint(
+            len(self.experience), size=self.M)]
+        
+        import pdb; pdb.set_trace()
+        batch = np.array(batch)
+        batch = (batch[:, 0], batch[:, 1], batch[:, 2], batch[:, 3])
 
-        if terminal_state:
-            Q_k_plus_1_max = 0.
-        else:
-            Q_k_plus_1_max = np.max([self.getQValue(new_state, a)
-                                     for a in range(self.env.action_space.n)])
-
-        delta_k = reward + self.gamma * Q_k_plus_1_max - Q_k
-        # import pdb; pdb.set_trace()
-        # if delta_k != 1.0:
-        #     print ("adf")
-
-        # self.weights[action, :] = self.weights[action, :] + (self.alpha) * (delta_k) * phi_k
-        self.weights[action, :] = self.weights[action, :] + \
-            (1 / (1 + self.alpdecay)) * (delta_k) * phi_k
-        self.alpdecay += 0.2
-
+        self.train_replay(batch)
 
 class FittedQIterationAgent(ExperienceReplayAgent):
     def __init__(self, env: gym.Env, epochs=6000, epsilon=0.1, N=100, M=20, gamma=1.):

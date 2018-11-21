@@ -8,7 +8,7 @@ class Q_Network(nn):
 		super(Q_Network, self).__init__()
 		self.input_dim = input_dim
 		self.output_dim  = output_dim
-
+		
 		self.linear1 = nn.Linear(input_dim, 10)
 		self.linear2 = nn.Linear(10, )
 
