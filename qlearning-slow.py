@@ -13,11 +13,11 @@ n_states = 40
 iter_max = 6000
 
 initial_lr = 1.0 # Learning rate
-min_lr = 0.9
+min_lr = 0.03
 gamma = 1.0
 t_max = 6000
 eps = 0.03
-d = 3 # Slowing down
+d = 5 # Slowing down
 d_test = d
 iter_test = 1000
 def run_episode(env, policy=None, render=False):
