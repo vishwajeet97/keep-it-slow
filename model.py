@@ -17,6 +17,7 @@ class Q_Network(nn.Module):
 		out = x
 		for index in range(len(self.layer_size)-1):
 			out = self.__getattr__('linear%d' % (index+1))(out)
-			out = torch.relu(out)
+			if index + 1 != len(self.layer_size) - 1:
+				out = torch.tanh(out)
 			
 		return out

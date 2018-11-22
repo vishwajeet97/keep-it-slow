@@ -21,16 +21,18 @@ class BaseAgent:
         '''
         for i in range(self.epochs):
             self.state = self.env.reset()
-            self.state = self.state - self.state
+            # self.state = self.state - self.state
             self.t = 0
             while True:
-                if i > 3000: 
+                if i > 10000: 
                     self.env.render()
                 # import pdb
                 # pdb.set_trace()
                 action = self.getAction(self.state)
                 new_state, reward, done, _ = self.env.step(action)
-                new_state -= self.state
+                # new_state -= self.state
+                # if done: 
+                #     reward = -100
                 self.update(self.state, action, reward,
                             new_state, self.t, done)
                 self.state = new_state
@@ -59,7 +61,7 @@ class BaseAgent:
 class ExperienceReplayAgent(BaseAgent):
     def __init__(self,
         env: gym.Env,
-        epochs=4000,
+        epochs=10100,
         epsilon=0.1,
         N=500,
         M=64,
@@ -80,9 +82,9 @@ class ExperienceReplayAgent(BaseAgent):
         self.num_train_iters = num_train_iters
 
         self.Q_new = Q_Network(
-            input_dim=self.env.observation_space.shape[0], output_dim=self.env.action_space.n, layer_size=[2, 2])
+            input_dim=self.env.observation_space.shape[0], output_dim=self.env.action_space.n, layer_size=[64])
         self.Q_old = Q_Network(
-            input_dim=self.env.observation_space.shape[0], output_dim=self.env.action_space.n, layer_size=[2, 2])
+            input_dim=self.env.observation_space.shape[0], output_dim=self.env.action_space.n, layer_size=[64])
 
         self.Q_old.load_state_dict(self.Q_new.state_dict())
         self.Q_old.eval()
@@ -142,7 +144,6 @@ class ExperienceReplayAgent(BaseAgent):
         expected_q_values = v_values * self.gamma + rewards
 
         loss = F.smooth_l1_loss(q_values, expected_q_values)
-
         self.optimizer.zero_grad()
         loss.backward()
 
@@ -150,9 +151,8 @@ class ExperienceReplayAgent(BaseAgent):
             p.grad.data.clamp_(-1, 1)
 
         self.optimizer.step()
-        # import pdb; pdb.set_trace()
-        print([np.sum(np.abs(p.grad.data.numpy()))
-               for p in self.Q_new.parameters()])
+        # print([np.sum(np.abs(p.grad.data.numpy()))
+        #        for p in self.Q_new.parameters()])
         # self.Q_new.eval()
 
     def batch_update(self):
