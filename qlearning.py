@@ -10,14 +10,14 @@ import gym
 from gym import wrappers
 
 n_states = 40
-iter_max = 1500
+iter_max = 6000
 
 initial_lr = 1.0 # Learning rate
 min_lr = 0.003
 gamma = 1.0
-t_max = 1500
-eps = 0.02
-
+t_max = 6000
+eps = 0.03
+iter_test = 1000
 def run_episode(env, policy=None, render=False):
     obs = env.reset()
     total_reward = 0
@@ -77,7 +77,7 @@ if __name__ == '__main__':
         if i % 100 == 0:
             print('Iteration #%d -- Total reward = %d.' %(i+1, total_reward))
     solution_policy = np.argmax(q_table, axis=2)
-    solution_policy_scores = [run_episode(env, solution_policy, False) for _ in range(100)]
+    solution_policy_scores = [run_episode(env, solution_policy, False) for _ in range(iter_test)]
     print("Average score of solution = ", np.mean(solution_policy_scores))
     # Animate it
     run_episode(env, solution_policy, True)

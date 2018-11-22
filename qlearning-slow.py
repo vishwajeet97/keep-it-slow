@@ -10,27 +10,29 @@ import gym
 from gym import wrappers
 
 n_states = 40
-iter_max = 2000
+iter_max = 6000
 
 initial_lr = 1.0 # Learning rate
-min_lr = 0.003
+min_lr = 0.9
 gamma = 1.0
-t_max = 2000
-eps = 0.02
-d = 1 # Slowing down
-
+t_max = 6000
+eps = 0.03
+d = 3 # Slowing down
+d_test = d
+iter_test = 1000
 def run_episode(env, policy=None, render=False):
     obs = env.reset()
     total_reward = 0
     step_idx = 0
-    for _ in range(t_max):
+    for i in range(t_max):
         if render:
             env.render()
         if policy is None:
             action = env.action_space.sample()
         else:
             a,b = obs_to_state(env, obs)
-            action = policy[a][b]
+            if (i%d_test) == 0:
+                action = policy[a][b]
         obs, reward, done, _ = env.step(action)
         total_reward += gamma ** step_idx * reward
         step_idx += 1
@@ -74,8 +76,8 @@ if __name__ == '__main__':
                     logits = q_table[a][b]
                     logits_exp = np.exp(logits)
                     # import pdb; pdb.set_trace()
-                    if (i%100==0):
-                        print logits_exp
+                    # if (i%100==0):
+                        # print logits_exp
                     probs = logits_exp / np.sum(logits_exp)
                     action = np.random.choice(env.action_space.n, p=probs)
                     current_action = action
@@ -85,25 +87,28 @@ if __name__ == '__main__':
                 a_, b_ = obs_to_state(env, obs)
                 # q_table[a][b][action] = q_table[a][b][action] + eta * (reward + gamma *  np.max(q_table[a_][b_]) - q_table[a][b][action])
                 q_table[prev_state_a][prev_state_b][prev_action] = q_table[prev_state_a][prev_state_b][prev_action] + eta * (accum_reward + gamma*np.amax(q_table[a][b]) - q_table[prev_state_a][prev_state_b][prev_action])
+                
+                accum_reward = reward
+
                 if done:
                     break
             else:
                 a, b = obs_to_state(env, obs)
+                if (j%d==0):
+                    prev_state_a, prev_state_b = a, b
+                    prev_action = current_action
                 obs, reward, done, _ = env.step(current_action)
                 total_reward += reward
                 accum_reward += reward
                 # update q table
                 a_, b_ = obs_to_state(env, obs)
                 # q_table[a][b][action] = q_table[a][b][action] + eta * (reward + gamma *  np.max(q_table[a_][b_]) - q_table[a][b][action])
-                if (j%d==0):
-                    prev_state_a, prev_state_b = a, b
-                    prev_action = current_action
                 if done:
                     break
         if i % 100 == 0:
             print('Iteration #%d -- Total reward = %d.' %(i+1, total_reward))
     solution_policy = np.argmax(q_table, axis=2)
-    solution_policy_scores = [run_episode(env, solution_policy, False) for _ in range(100)]
+    solution_policy_scores = [run_episode(env, solution_policy, False) for _ in range(iter_test)]
     print("Average score of solution = ", np.mean(solution_policy_scores))
     # Animate it
     run_episode(env, solution_policy, True)
