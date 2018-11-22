@@ -9,16 +9,20 @@ from model import Q_Network
 import torch
 import torch.nn.functional as F
 
+import sys
+
 
 class BaseAgent:
     def __init__(self, env, epochs=4000):
         self.env = env
         self.epochs = epochs
+        self.avg_timesteps = []
 
     def learn(self):
         ''' 
 
         '''
+        self.totalNumberOfTimeSteps = 0
         for i in range(self.epochs):
             self.state = self.env.reset()
             # self.state = self.state - self.state
@@ -39,7 +43,8 @@ class BaseAgent:
                 self.t += 1
                 if done:
                     self.episodeEnded()
-                    print("Episode finished after {} timesteps".format(self.t+1))
+                    self.totalNumberOfTimeSteps += self.t
+                    # print("Episode finished after {} timesteps".format(self.t+1))
                     break
 
     def getAction(self, state):
@@ -58,12 +63,25 @@ class BaseAgent:
         pass
 
 
+class Buffer(list): 
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.curr_pos = 0
+        super(Buffer, self).__init__()
+
+    def append(self, x):
+        if (len(self) >= self.capacity):
+            self[self.curr_pos % self.capacity] = x
+        else:
+            super(Buffer, self).append(x)
+        self.curr_pos += 1
+
 class ExperienceReplayAgent(BaseAgent):
     def __init__(self,
         env: gym.Env,
         epochs=10100,
         epsilon=0.1,
-        N=500,
+        N=250,
         M=64,
         num_train_iters=50,
         num_tilings=32,
@@ -75,7 +93,7 @@ class ExperienceReplayAgent(BaseAgent):
         self.epsilon = epsilon
         self.num_episodes = 0
 
-        self.NUM_EP_UPDATE_VALUE = 10
+        self.NUM_EP_UPDATE_VALUE = 600
 
         self.N = N
         self.M = M
@@ -93,6 +111,7 @@ class ExperienceReplayAgent(BaseAgent):
         self.alpdecay = 1
         self.alpha = 0.2
         self.gamma = gamma
+
 
     def getAction(self, state):
         '''
@@ -156,6 +175,10 @@ class ExperienceReplayAgent(BaseAgent):
         # self.Q_new.eval()
 
     def batch_update(self):
+        self.avg_timesteps.append((self.totalNumberOfTimeSteps / self.N))
+        print ("Avg timesteps per episode: %f" % self.avg_timesteps[-1])
+        print ("Num eps: %d" % self.num_episodes)
+        print ("%d bytes" % sys.getsizeof(self.experience))
         for i in range(self.num_train_iters):
             batch_index = np.random.randint(len(self.experience), size=self.M)
             exp = np.array(self.experience)[batch_index]
@@ -163,7 +186,7 @@ class ExperienceReplayAgent(BaseAgent):
             batch = (np.array(exp[:, 0].tolist()), np.array(exp[:, 1].tolist()), np.array(
                 exp[:, 2].tolist()), np.array(exp[:, 3].tolist()), np.array(exp[:, 4].tolist()))
             self.train_replay(batch)
-
+        self.totalNumberOfTimeSteps = 0
 
 class FittedQIterationAgent(ExperienceReplayAgent):
     def __init__(self, env: gym.Env, epochs=6000, epsilon=0.1, N=100, M=20, gamma=1.):
