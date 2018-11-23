@@ -4,6 +4,7 @@ import tiles
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.linear_model import SGDRegressor, LinearRegression
 from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
 
 from model import Q_Network
 import torch
@@ -13,11 +14,15 @@ import sys
 
 
 filename = "set_filename"
-
+datafile = "datafile"
 def print_and_log(string):
     global filename
     print (string)
     with open(filename, 'a') as f:
+        f.write(str(string)+ "\n")
+
+def log_data(string):
+    with open(datafile, 'a') as f:
         f.write(str(string)+ "\n")
 
 class BaseAgent:
@@ -25,6 +30,7 @@ class BaseAgent:
         self.env = env
         self.epochs = epochs
         self.avg_timesteps = []
+        self.episodes = []
 
     def learn(self):
         ''' 
@@ -36,8 +42,9 @@ class BaseAgent:
             # self.state = self.state - self.state
             self.t = 0
             while True:
-                # if i > 10000:
-                #     self.env.render()
+                # self.env.render()
+                if i > 10000:
+                    self.env.render()
                 # import pdb
                 # pdb.set_trace()
                 action = self.getAction(self.state)
@@ -54,6 +61,9 @@ class BaseAgent:
                     self.totalNumberOfTimeSteps += self.t
                     # print_and_log("Episode finished after {} timesteps".format(self.t+1))
                     break
+
+        with open(datafile, 'a') as f:
+            f.write("\n")
 
     def getAction(self, state):
         '''
@@ -73,6 +83,10 @@ class BaseAgent:
     def log(self):
         print_and_log(self.env)
 
+    def plot(self):
+        pass
+
+
 
 class Buffer(list):
     def __init__(self, capacity):
@@ -91,12 +105,13 @@ class Buffer(list):
 class ExperienceReplayAgent(BaseAgent):
     def __init__(self,
                  env: gym.Env,
-                 epochs=10100,
+                 epochs=20100,
+                 # epochs=3000,
                  epsilon=0.1,
-                 N=1000,
-                 M=256,
-                 num_train_iters=128,
-                 num_ep_update_value=2001,
+                 N=2000,
+                 M=100,
+                 num_train_iters=50,
+                 num_ep_update_value=4000,
                  gamma=1.0,
                  layer_size=[64],
                  lr=1e-1):
@@ -127,6 +142,9 @@ class ExperienceReplayAgent(BaseAgent):
         self.alpdecay = 1
         self.alpha = 0.2
         self.gamma = gamma
+
+        global datafile
+        datafile = "results/%s_ER" % env.unwrapped.spec.id 
         
     def getAction(self, state):
         '''
@@ -194,6 +212,8 @@ class ExperienceReplayAgent(BaseAgent):
 
     def batch_update(self):
         self.avg_timesteps.append((self.totalNumberOfTimeSteps / self.N))
+        log_data(str(self.num_episodes) + " " + str(self.totalNumberOfTimeSteps / self.N))
+        self.episodes.append(self.num_episodes)
         print_and_log("Avg timesteps per episode: %f" % self.avg_timesteps[-1])
         print_and_log("Num eps: %d" % self.num_episodes)
         print_and_log("Experience length: %d" % len(self.experience))
@@ -233,18 +253,27 @@ class ExperienceReplayAgent(BaseAgent):
                  str(self.layer_size),
                  self.lr)
 
+    def plot(self):
+        x = list(range(1, len(self.avg_timesteps)+1))
+        x = [self.N*i for i in x]
+        plt.xlabel("Episodes")
+        plt.ylabel("Average time steps per epoch")
+        plt.plot(x, self.avg_timesteps, '-bo')
+        plt.show()
+
 
 
 class SlowDownExperienceReplayAgent(ExperienceReplayAgent):
     def __init__(self,
                  env: gym.Env,
                  epochs=10100,
+                 # epochs=3000,
                  epsilon=0.1,
-                 N=1000,
-                 M=256,
-                 num_train_iters=128,
-                 num_ep_update_value=2001,
-                 decision_interval=20,
+                 N=100,
+                 M=50,
+                 num_train_iters=25,
+                 num_ep_update_value=200,
+                 decision_interval=2,
                  gamma=1.,
                  layer_size=[64],
                  lr=1e-1):
@@ -262,6 +291,9 @@ class SlowDownExperienceReplayAgent(ExperienceReplayAgent):
         self.decision_interval = decision_interval
         self.running_reward = 0
         self.curr_action = self.env.action_space.sample()
+
+        global datafile
+        datafile = "results/%s_ER" % env.unwrapped.spec.id 
 
     def log(self):
         super(SlowDownExperienceReplayAgent, self).log()
