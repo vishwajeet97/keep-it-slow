@@ -36,8 +36,8 @@ class BaseAgent:
             # self.state = self.state - self.state
             self.t = 0
             while True:
-                if i > 10000:
-                    self.env.render()
+                # if i > 10000:
+                #     self.env.render()
                 # import pdb
                 # pdb.set_trace()
                 action = self.getAction(self.state)
@@ -93,13 +93,13 @@ class ExperienceReplayAgent(BaseAgent):
                  env: gym.Env,
                  epochs=10100,
                  epsilon=0.1,
-                 N=250,
-                 M=64,
-                 num_train_iters=50,
-                 num_ep_update_value=600,
+                 N=1000,
+                 M=256,
+                 num_train_iters=128,
+                 num_ep_update_value=2001,
                  gamma=1.0,
                  layer_size=[64],
-                 lr=1e-3):
+                 lr=1e-1):
 
         super(ExperienceReplayAgent, self).__init__(env, epochs=epochs)
         self.experience = []
@@ -173,8 +173,10 @@ class ExperienceReplayAgent(BaseAgent):
 
         q_values = self.Q_new(state)[range(state.shape[0]), action].squeeze()
         v_values = torch.zeros(state.shape[0])
-        v_values[torch.Tensor(final.tolist()) == False] = self.Q_old(
-            next_state).max(1)[0].detach()
+        # import pdb; pdb.set_trace()
+        if next_state.shape[0] != 0:
+            v_values[torch.Tensor(final.tolist()) == False] = self.Q_old(
+                next_state).max(1)[0].detach()
 
         expected_q_values = v_values * self.gamma + rewards
 
@@ -217,6 +219,20 @@ class ExperienceReplayAgent(BaseAgent):
         print_and_log("layer_size=%s" % str(self.layer_size)) 
         print_and_log("lr=%f" % self.lr)
 
+    def set_log_filename(self):
+        global filename
+        filename = "results/%s_%d_%f_%d_%d_%d_%d_%f_%s_%f.log" % (
+                 type(self).__name__,
+                 self.epochs,
+                 self.epsilon,
+                 self.N,
+                 self.M,
+                 self.num_train_iters,
+                 self.num_ep_update_value,
+                 self.gamma,
+                 str(self.layer_size),
+                 self.lr)
+
 
 
 class SlowDownExperienceReplayAgent(ExperienceReplayAgent):
@@ -228,10 +244,10 @@ class SlowDownExperienceReplayAgent(ExperienceReplayAgent):
                  M=256,
                  num_train_iters=128,
                  num_ep_update_value=2001,
-                 decision_interval=8,
+                 decision_interval=20,
                  gamma=1.,
                  layer_size=[64],
-                 lr=1e-2):
+                 lr=1e-1):
 
         super(SlowDownExperienceReplayAgent, self).__init__(env,
                                                             epochs=epochs,
@@ -270,14 +286,15 @@ class SlowDownExperienceReplayAgent(ExperienceReplayAgent):
         if (timestep) % self.decision_interval == 0:
             self.curr_state = state
 
-        if (timestep + 1) % self.decision_interval == 0:
+        if (timestep + 1) % self.decision_interval == 0 or terminal_state:
             self.experience.append(
                 (self.curr_state, action, self.running_reward, new_state, terminal_state))
             self.running_reward = 0
 
     def set_log_filename(self):
         global filename
-        filename = "results/%d_%f_%d_%d_%d_%d_%d_%f_%s_%f.log" % (
+        filename = "results/%s_%d_%f_%d_%d_%d_%d_%d_%f_%s_%f.log" % (
+                 type(self).__name__,
                  self.epochs,
                  self.epsilon,
                  self.N,
