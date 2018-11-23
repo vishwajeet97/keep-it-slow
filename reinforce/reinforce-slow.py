@@ -2,6 +2,7 @@ import argparse
 import gym
 import numpy as np
 from itertools import count
+import pickle
 
 import torch
 import torch.nn as nn
@@ -13,6 +14,8 @@ from torch.distributions import Categorical
 parser = argparse.ArgumentParser(description='PyTorch REINFORCE example')
 parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                     help='discount factor (default: 0.99)')
+parser.add_argument('--max_episodes', type=int, default=7000, metavar='N',
+                    help='max episodes till the simulation continues (default: 10,000)')
 parser.add_argument('--seed', type=int, default=543, metavar='N',
                     help='random seed (default: 543)')
 parser.add_argument('--di', type=int, default=2, metavar='N',
@@ -93,7 +96,8 @@ def test():
 def main():
     running_reward = 10
     di = args.di
-    for i_episode in count(1):
+    reward_list = []
+    for i_episode in range(args.max_episodes):
         state = env.reset()
         di_reward = 0
         for t in range(10000):  # Don't infinite loop while learning
@@ -109,15 +113,19 @@ def main():
                 break
 
         running_reward = running_reward * 0.99 + t * 0.01
+        reward_list.append(running_reward)
         finish_episode()
         if i_episode % args.log_interval == 0:
             print('Episode {}\tLast length: {:5d}\tAverage length: {:.2f}'.format(
                 i_episode, t, running_reward))
-        if running_reward > env.spec.reward_threshold:
-            print("Solved! Running reward is now {} and "
-                  "the last episode runs to {} time steps!".format(running_reward, t))
-            break
-
+        # if running_reward > env.spec.reward_threshold:
+        #     print("Solved! Running reward is now {} and "
+        #           "the last episode runs to {} time steps!".format(running_reward, t))
+        #     break
+    reward_np = np.array(reward_list)
+    file_path = 'logs/cart_slow_%d_%d' % (args.di, args.seed)
+    with open(file_path, 'w') as f:
+        pickle({'rewards': reward_np, 'di':args.di}, f)
     if args.render:
         test()
 

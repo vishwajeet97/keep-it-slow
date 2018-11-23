@@ -13,6 +13,8 @@ from torch.distributions import Categorical
 parser = argparse.ArgumentParser(description='PyTorch REINFORCE example')
 parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                     help='discount factor (default: 0.99)')
+parser.add_argument('--max_episodes', type=int, default=10000, metavar='N',
+                    help='max episodes till the simulation continues (default: 10,000)')
 parser.add_argument('--seed', type=int, default=543, metavar='N',
                     help='random seed (default: 543)')
 parser.add_argument('--di', type=int, default=2, metavar='N',
@@ -26,7 +28,7 @@ parser.add_argument('--log-interval', type=int, default=10, metavar='N',
 args = parser.parse_args()
 
 
-env = gym.make('CartPole-v0')
+env = gym.make('MountainCar-v0')
 env.seed(args.seed)
 torch.manual_seed(args.seed)
 
@@ -34,8 +36,8 @@ torch.manual_seed(args.seed)
 class Policy(nn.Module):
     def __init__(self):
         super(Policy, self).__init__()
-        self.affine1 = nn.Linear(2, 128)
-        self.affine2 = nn.Linear(128, 2)
+        self.affine1 = nn.Linear(2, 64)
+        self.affine2 = nn.Linear(64, 2)
 
         self.saved_log_probs = []
         self.rewards = []
@@ -91,9 +93,9 @@ def test():
                 break
 
 def main():
-    running_reward = 10
+    running_reward = -199
     di = args.di
-    for i_episode in count(1):
+    for i_episode in range(args.max_episodes):
         state = env.reset()
         di_reward = 0
         for t in range(10000):  # Don't infinite loop while learning
@@ -108,15 +110,15 @@ def main():
             if done:
                 break
 
-        running_reward = running_reward * 0.99 + t * 0.01
+        running_reward = running_reward * 0.99 + (-t) * 0.01
         finish_episode()
         if i_episode % args.log_interval == 0:
             print('Episode {}\tLast length: {:5d}\tAverage length: {:.2f}'.format(
                 i_episode, t, running_reward))
-        if running_reward > env.spec.reward_threshold:
-            print("Solved! Running reward is now {} and "
-                  "the last episode runs to {} time steps!".format(running_reward, t))
-            break
+        # if running_reward > env.spec.reward_threshold:
+        #     print("Solved! Running reward is now {} and "
+        #           "the last episode runs to {} time steps!".format(running_reward, t))
+        #     break
 
     if args.render:
         test()

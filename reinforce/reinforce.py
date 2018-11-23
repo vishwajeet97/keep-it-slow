@@ -79,6 +79,7 @@ def finish_episode():
 
 def main():
     running_reward = 10
+    reward_list = []
     for i_episode in count(1):
         state = env.reset()
         for t in range(10000):  # Don't infinite loop while learning
@@ -91,15 +92,19 @@ def main():
                 break
 
         running_reward = running_reward * 0.99 + t * 0.01
+        reward_list.append(running_reward)
         finish_episode()
         if i_episode % args.log_interval == 0:
             print('Episode {}\tLast length: {:5d}\tAverage length: {:.2f}'.format(
                 i_episode, t, running_reward))
-        if running_reward > env.spec.reward_threshold:
-            print("Solved! Running reward is now {} and "
-                  "the last episode runs to {} time steps!".format(running_reward, t))
-            break
-
+        # if running_reward > env.spec.reward_threshold:
+        #     print("Solved! Running reward is now {} and "
+        #           "the last episode runs to {} time steps!".format(running_reward, t))
+        #     break
+    reward_np = np.array(reward_list)
+    file_path = 'logs/cart_%d' % (args.di, args.seed)
+    with open(file_path, 'w') as f:
+        pickle({'rewards': reward_np, 'di':1}, f)
 
 if __name__ == '__main__':
     main()
