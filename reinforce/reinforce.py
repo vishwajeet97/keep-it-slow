@@ -8,13 +8,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Categorical
-
+import pickle
 
 parser = argparse.ArgumentParser(description='PyTorch REINFORCE example')
 parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                     help='discount factor (default: 0.99)')
 parser.add_argument('--seed', type=int, default=543, metavar='N',
                     help='random seed (default: 543)')
+parser.add_argument('--max_episodes', type=int, default=3500, metavar='N',
+                    help='max episodes till the simulation continues (default: 10,000)')
 parser.add_argument('--lr', type=float, default=1e-2, metavar='N',
                     help='learning rate (default: 1e-2)')
 parser.add_argument('--render', action='store_true',
@@ -80,7 +82,7 @@ def finish_episode():
 def main():
     running_reward = 10
     reward_list = []
-    for i_episode in count(1):
+    for i_episode in range(args.max_episodes):
         state = env.reset()
         for t in range(10000):  # Don't infinite loop while learning
             action = select_action(state)
@@ -101,10 +103,12 @@ def main():
         #     print("Solved! Running reward is now {} and "
         #           "the last episode runs to {} time steps!".format(running_reward, t))
         #     break
+    # import pdb; pdb.set_trace()
     reward_np = np.array(reward_list)
-    file_path = 'logs/cart_%d' % (args.di, args.seed)
-    with open(file_path, 'w') as f:
-        pickle({'rewards': reward_np, 'di':1}, f)
+    file_path = 'logs/cart_%d_%d' % (1, args.seed)
+    with open(file_path, 'wb') as f:
+        pickle.dump({'rewards': reward_np, 'di': 1}, f)
+
 
 if __name__ == '__main__':
     main()

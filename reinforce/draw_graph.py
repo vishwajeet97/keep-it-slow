@@ -3,23 +3,21 @@ import numpy as np
 import pickle
 
 plot_rewards = []
-dis = [2, 3, 5, 7, 10, 15]
+dis = [1, 2, 3, 5, 7]
+seed_len = 4
+
 for di in dis:
-	rewards = np.zeros(4000)
-	for seed in range(0,5):
-		file_path = 'logs/cart_slow_%d_%d'
-		with open(file_path%(di,seed), 'r') as f:
+	rewards = np.zeros(3500)
+	for seed in range(seed_len):
+		file_path = 'logs/cart_slow_%d_%d' % (di, seed)
+		with open(file_path, 'rb') as f:
+			print(file_path)
 			data = pickle.load(f)
 			reward = data['rewards']
 			rewards += reward
 
-	rewards /= 5
+	rewards /= seed_len
 	plot_rewards.append(rewards)
-
-# plot_rewards.append(np.arange(100))
-# plot_rewards.append(np.arange(100)+50)
-# plot_rewards.append(np.arange(100)+10)
-# plot_rewards.append(np.arange(100)+80)
 
 # sns.set(style="darkgrid")
 for index, rewards in enumerate(plot_rewards):
