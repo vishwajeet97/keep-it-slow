@@ -118,10 +118,10 @@ def main():
         if i_episode % args.log_interval == 0:
             print('Episode {}\tLast length: {:5d}\tAverage length: {:.2f}'.format(
                 i_episode, t, running_reward))
-        # if running_reward > env.spec.reward_threshold:
-        #     print("Solved! Running reward is now {} and "
-        #           "the last episode runs to {} time steps!".format(running_reward, t))
-        #     break
+        if running_reward > env.spec.reward_threshold:
+            print("Solved! Running reward is now {} and "
+                  "the last episode runs to {} time steps!".format(running_reward, t))
+            break
     reward_np = np.array(reward_list)
     file_path = 'logs/cart_slow_%d_%d' % (args.di, args.seed)
     with open(file_path, 'wb') as f:
