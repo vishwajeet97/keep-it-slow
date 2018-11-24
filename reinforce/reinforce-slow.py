@@ -14,7 +14,7 @@ from torch.distributions import Categorical
 parser = argparse.ArgumentParser(description='PyTorch REINFORCE example')
 parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                     help='discount factor (default: 0.99)')
-parser.add_argument('--max_episodes', type=int, default=7000, metavar='N',
+parser.add_argument('--max_episodes', type=int, default=3500, metavar='N',
                     help='max episodes till the simulation continues (default: 10,000)')
 parser.add_argument('--seed', type=int, default=543, metavar='N',
                     help='random seed (default: 543)')
@@ -124,8 +124,8 @@ def main():
         #     break
     reward_np = np.array(reward_list)
     file_path = 'logs/cart_slow_%d_%d' % (args.di, args.seed)
-    with open(file_path, 'w') as f:
-        pickle({'rewards': reward_np, 'di':args.di}, f)
+    with open(file_path, 'wb') as f:
+        pickle.dump({'rewards': reward_np, 'di':args.di}, f)
     if args.render:
         test()
 
