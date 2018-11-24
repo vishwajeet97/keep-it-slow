@@ -1,4 +1,5 @@
 # keep-it-slow
 Effects of Slowing Down on RL methods
 
-R
+Requirements : 
+python3, numpy, pytorch, tensorflow, gym, matplotlib, pyplot
