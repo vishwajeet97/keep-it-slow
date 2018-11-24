@@ -1,0 +1,51 @@
+<TimeLimit<CartPoleEnv<CartPole-v0>>>
+epochs=10100
+epsilon=0.100000
+N=1000
+M=256
+num_train_iters=128
+num_ep_update_value=2001
+gamma=1.000000
+layer_size=[64]
+lr=0.100000
+decision_interval=20
+Updating Q
+Avg timesteps per episode: 9.332000
+Num eps: 1000
+Experience length: 1000
+Updating Q
+Avg timesteps per episode: 9.919000
+Num eps: 2000
+Experience length: 2000
+Updating Q
+Avg timesteps per episode: 9.941000
+Num eps: 3000
+Experience length: 3000
+Updating Q
+Avg timesteps per episode: 9.932000
+Num eps: 4000
+Experience length: 4000
+Updating Q
+Avg timesteps per episode: 9.908000
+Num eps: 5000
+Experience length: 5000
+Updating Q
+Avg timesteps per episode: 9.913000
+Num eps: 6000
+Experience length: 6000
+Updating Q
+Avg timesteps per episode: 9.917000
+Num eps: 7000
+Experience length: 7000
+Updating Q
+Avg timesteps per episode: 9.918000
+Num eps: 8000
+Experience length: 8000
+Updating Q
+Avg timesteps per episode: 9.919000
+Num eps: 9000
+Experience length: 9000
+Updating Q
+Avg timesteps per episode: 9.897000
+Num eps: 10000
+Experience length: 10000
